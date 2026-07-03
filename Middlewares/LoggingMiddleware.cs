@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using DammaniAPI.Features;
 
 namespace DammaniAPI.Middlewares;
 
@@ -26,7 +27,7 @@ public class LoggingMiddleware
             _logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = "Internal server error" }));
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { success = false, errorCode = ErrorCodes.InternalError }));
             return;
         }
         finally

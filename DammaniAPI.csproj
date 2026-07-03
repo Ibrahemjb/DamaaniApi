@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DammaniAPI.Tests\**" />
+    <Content Remove="DammaniAPI.Tests\**" />
+    <None Remove="DammaniAPI.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Database/Scripts/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

@@ -10,6 +10,7 @@ public static class ErrorCodes
     public const string WrongPassword = "wrong_password";
     public const string Unauthorized = "unauthorized";
     public const string Forbidden = "forbidden";
+    public const string NotFound = "not_found";
 }
 
 public static class Roles
@@ -28,6 +29,12 @@ public static class ShopStatuses
 {
     public const string Active = "active";
     public const string Suspended = "suspended";
+}
+
+public static class TemplateStatuses
+{
+    public const string Active = "active";
+    public const string Inactive = "inactive";
 }
 
 public static class Languages

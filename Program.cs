@@ -1,6 +1,8 @@
 using DammaniAPI.Database;
 using DammaniAPI.Middlewares;
 using DammaniAPI.Middlewares.Authentication;
+using DammaniAPI.Services.Auth;
+using DammaniAPI.Services.Email;
 using DammaniAPI.Utilities;
 using Dapper;
 using DotNetEnv;
@@ -9,8 +11,9 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
-if (File.Exists(".env"))
-    Env.Load(".env", new LoadOptions(clobberExistingVars: false));
+var envFile = FindEnvFile();
+if (envFile is not null)
+    Env.Load(envFile, new LoadOptions(clobberExistingVars: true));
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
@@ -44,6 +47,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddResponseCompression();
 builder.Services.AddSingleton<IManagementDatabase, ManagementDatabase>();
+builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddSingleton<IEmailSender, MockEmailSender>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
 SqlMapper.AddTypeHandler(new UtcDateTimeHandler());
@@ -58,7 +64,9 @@ app.MapControllers();
 
 try
 {
-    new DatabaseMigrator(app.Services.GetRequiredService<IManagementDatabase>()).Migrate();
+    new DatabaseMigrator(
+        app.Services.GetRequiredService<IManagementDatabase>(),
+        app.Configuration).Migrate();
 }
 catch (Exception ex)
 {
@@ -66,6 +74,23 @@ catch (Exception ex)
 }
 
 app.Run(Environment.GetEnvironmentVariable("LISTENING_URL") ?? "http://0.0.0.0:5000");
+
+static string? FindEnvFile()
+{
+    foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+    {
+        var dir = new DirectoryInfo(start);
+        while (dir is not null)
+        {
+            var path = Path.Combine(dir.FullName, ".env");
+            if (File.Exists(path))
+                return path;
+            dir = dir.Parent;
+        }
+    }
+
+    return null;
+}
 
 static string ToCamelCasePath(string key)
 {

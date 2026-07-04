@@ -9,8 +9,9 @@ public class ManagementDatabase : IManagementDatabase
 
     public ManagementDatabase(IConfiguration configuration)
     {
-        _connectionString = configuration["DB_CONNECTION_STRING"]
+        var raw = configuration["DB_CONNECTION_STRING"]
             ?? throw new InvalidOperationException("DB_CONNECTION_STRING is not configured.");
+        _connectionString = MySqlConnectionStringNormalizer.Normalize(raw);
     }
 
     public IDbConnection Open()

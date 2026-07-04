@@ -7,8 +7,15 @@ namespace DammaniAPI.Database;
 public class DatabaseMigrator
 {
     private readonly IManagementDatabase _mdb;
+    private readonly string _connectionString;
 
-    public DatabaseMigrator(IManagementDatabase mdb) => _mdb = mdb;
+    public DatabaseMigrator(IManagementDatabase mdb, IConfiguration configuration)
+    {
+        _mdb = mdb;
+        var raw = configuration["DB_CONNECTION_STRING"]
+            ?? throw new InvalidOperationException("DB_CONNECTION_STRING is not configured.");
+        _connectionString = MySqlConnectionStringNormalizer.Normalize(raw);
+    }
 
     public void Migrate()
     {
@@ -17,7 +24,7 @@ public class DatabaseMigrator
             throw new DirectoryNotFoundException($"Migration scripts folder not found: {scriptsPath}");
 
         using var db = _mdb.Open();
-        var builder = new MySqlConnectionStringBuilder(((MySqlConnection)db).ConnectionString)
+        var builder = new MySqlConnectionStringBuilder(_connectionString)
         {
             AllowUserVariables = true
         };

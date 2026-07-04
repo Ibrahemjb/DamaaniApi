@@ -5,6 +5,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -58,6 +59,16 @@ public class ApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["DB_CONNECTION_STRING"] = "Server=127.0.0.1;Port=1;Database=dammani_test;Uid=root;Pwd=test;",
+                ["JWT_SECRET"] = "01234567890123456789012345678901",
+                ["JWT_ISSUER"] = "damaani-api",
+                ["JWT_APP_IDENTIFIER"] = "dammani-api"
+            });
+        });
         builder.ConfigureServices(services =>
         {
             services

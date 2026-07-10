@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="DammaniAPI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="DbUp" Version="5.0.41" />

@@ -70,6 +70,7 @@ public class Signup
             var userId = Guid.NewGuid().ToString();
             var shopId = Guid.NewGuid().ToString();
             var shopUserId = Guid.NewGuid().ToString();
+            var subscriptionId = Guid.NewGuid().ToString();
             using var tx = db.BeginTransaction();
             try
             {
@@ -103,6 +104,20 @@ public class Signup
                     VALUES (@Id, @ShopId, @UserId, @Role, 'active', UTC_TIMESTAMP())
                     """,
                     new { Id = shopUserId, ShopId = shopId, UserId = userId, Role = Roles.Owner },
+                    tx);
+
+                // DMN-1001: every shop always has an active subscription; new shops start on Free.
+                var freePlanId = await db.ExecuteScalarAsync<string?>(
+                    "SELECT Id FROM Plan WHERE Code = @Code AND IsActive = 1",
+                    new { Code = PlanCodes.Free },
+                    tx) ?? throw new InvalidOperationException("Free plan seed is missing — migrations have not been applied.");
+
+                await db.ExecuteAsync(
+                    """
+                    INSERT INTO Subscription (Id, ShopId, PlanId, Status, CurrentPeriodStart, CurrentPeriodEnd, CreatedAt)
+                    VALUES (@Id, @ShopId, @PlanId, 'active', DATE_FORMAT(UTC_DATE(), '%Y-%m-01'), LAST_DAY(UTC_DATE()), UTC_TIMESTAMP())
+                    """,
+                    new { Id = subscriptionId, ShopId = shopId, PlanId = freePlanId },
                     tx);
 
                 await ActivityLogger.LogAsync(db, tx, shopId, "shop", shopId, "shop.created", userId);

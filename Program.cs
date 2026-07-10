@@ -3,6 +3,7 @@ using DammaniAPI.Middlewares;
 using DammaniAPI.Middlewares.Authentication;
 using DammaniAPI.Services.Auth;
 using DammaniAPI.Services.Email;
+using DammaniAPI.Services.Storage;
 using DammaniAPI.Utilities;
 using Dapper;
 using DotNetEnv;
@@ -50,6 +51,7 @@ builder.Services.AddSingleton<IManagementDatabase, ManagementDatabase>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddSingleton<IEmailSender, MockEmailSender>();
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
 SqlMapper.AddTypeHandler(new UtcDateTimeHandler());

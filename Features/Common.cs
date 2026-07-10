@@ -19,6 +19,7 @@ public static class ErrorCodes
     public const string UserLimitReached = "user_limit_reached";
     public const string UnknownVariable = "unknown_variable";
     public const string DuplicateMember = "duplicate_member";
+    public const string PhoneTaken = "phone_taken";
     // Public surface codes (DMN-501/504): deliberately vague — "unavailable"
     // covers suspended shops without revealing that a shop exists or why.
     public const string Unavailable = "unavailable";

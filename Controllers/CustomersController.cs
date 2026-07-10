@@ -30,4 +30,20 @@ public class CustomersController : ControllerBase
         query.ShopId = HttpContext.CurrentShopId();
         return Ok(await _mediator.Send(query));
     }
+
+    [Authorize(Roles.Staff)]
+    [HttpGet("getCustomerDetail")]
+    public async Task<IActionResult> GetCustomerDetail([FromQuery] GetCustomerDetail.Query query)
+    {
+        query.ShopId = HttpContext.CurrentShopId();
+        return Ok(await _mediator.Send(query));
+    }
+
+    [Authorize(Roles.Staff)]
+    [HttpPost("updateCustomer")]
+    public async Task<IActionResult> UpdateCustomer([FromBody] UpdateCustomer.Command command)
+    {
+        command.ShopId = HttpContext.CurrentShopId();
+        return Ok(await _mediator.Send(command));
+    }
 }

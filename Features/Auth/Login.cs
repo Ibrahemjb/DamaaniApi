@@ -74,7 +74,8 @@ public class Login
                     su.ShopId,
                     su.Role,
                     su.Status AS ShopUserStatus,
-                    s.Status AS ShopStatus
+                    s.Status AS ShopStatus,
+                    (s.OnboardingCompletedAt IS NOT NULL) AS OnboardingCompleted
                 FROM User u
                 LEFT JOIN ShopUser su ON su.UserId = u.Id
                 LEFT JOIN Shop s ON s.Id = su.ShopId
@@ -105,7 +106,8 @@ public class Login
                 Language = user.Language,
                 Role = user.Role,
                 ShopId = user.ShopId,
-                IsPlatformAdmin = user.IsPlatformAdmin
+                IsPlatformAdmin = user.IsPlatformAdmin,
+                OnboardingCompleted = user.OnboardingCompleted
             };
             var token = _tokenService.Issue(new AuthUser(resultUser.Id, resultUser.FullName, resultUser.Email, resultUser.Language, resultUser.ShopId, resultUser.Role, resultUser.IsPlatformAdmin));
             return new Result { Success = true, Token = token, User = resultUser };
@@ -135,6 +137,7 @@ public class Login
             public string? Role { get; set; }
             public string? ShopUserStatus { get; set; }
             public string? ShopStatus { get; set; }
+            public bool OnboardingCompleted { get; set; }
         }
     }
 }

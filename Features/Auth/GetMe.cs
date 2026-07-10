@@ -41,9 +41,11 @@ public class GetMe
                     u.Language,
                     su.Role,
                     su.ShopId,
-                    u.IsPlatformAdmin
+                    u.IsPlatformAdmin,
+                    (s.OnboardingCompletedAt IS NOT NULL) AS OnboardingCompleted
                 FROM User u
                 LEFT JOIN ShopUser su ON su.UserId = u.Id AND su.Status = 'active'
+                LEFT JOIN Shop s ON s.Id = su.ShopId
                 WHERE u.Id = @UserId
                 ORDER BY su.Role = 'owner' DESC
                 LIMIT 1

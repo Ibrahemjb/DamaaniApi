@@ -16,4 +16,36 @@ public class MockEmailSender : IEmailSender
             resetUrl);
         return Task.CompletedTask;
     }
+
+    public Task SendStaffInviteAsync(string email, string language, string shopName, string inviteUrl, CancellationToken ct)
+    {
+        var subject = language == "ar" ? $"دعوة للانضمام إلى {shopName} على ضماني" : $"Join {shopName} on Damaani";
+        _logger.LogInformation(
+            "Mock email send: To={Email}; Subject={Subject}; InviteUrl={InviteUrl}",
+            email,
+            subject,
+            inviteUrl);
+        return Task.CompletedTask;
+    }
+
+    public Task SendContactMessageAsync(
+        string inboxEmail,
+        string fromEmail,
+        string? fromName,
+        string? topic,
+        string message,
+        CancellationToken ct)
+    {
+        var subject = string.IsNullOrWhiteSpace(topic)
+            ? "Damaani contact form"
+            : $"Damaani contact: {topic}";
+        _logger.LogInformation(
+            "Mock email send: To={Inbox}; From={FromEmail}; Name={Name}; Subject={Subject}; Body={Body}",
+            inboxEmail,
+            fromEmail,
+            fromName,
+            subject,
+            message);
+        return Task.CompletedTask;
+    }
 }

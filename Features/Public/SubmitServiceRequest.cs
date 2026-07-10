@@ -1,12 +1,12 @@
 using Dapper;
 using DammaniAPI.Database;
+using DammaniAPI.Features.ServiceRequests;
 using DammaniAPI.Features.Warranties;
 using DammaniAPI.Services.Storage;
 using DammaniAPI.Utilities;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
-using MySql.Data.MySqlClient;
 
 namespace DammaniAPI.Features.Public;
 
@@ -118,7 +118,7 @@ public class SubmitServiceRequest
                 SELECT w.Id, w.ShopId,
                        CASE WHEN w.Status = @Active AND w.ExpiryDate IS NOT NULL AND w.ExpiryDate < CURDATE()
                             THEN 'expired' ELSE w.Status END AS Status,
-                       s.Status AS ShopStatus
+                       s.Status AS ShopStatus, s.AllowExpiredRequests
                 FROM Warranty w
                 JOIN Shop s ON s.Id = w.ShopId
                 WHERE w.PublicSlug = @Slug
@@ -133,10 +133,7 @@ public class SubmitServiceRequest
                 return new Result { Success = false, ErrorCode = ErrorCodes.Unavailable };
             if (warranty.Status == WarrantyStatuses.Cancelled)
                 return new Result { Success = false, ErrorCode = ErrorCodes.NotAllowed };
-            // BP §18 expired rule. The shop setting arrives with DMN-901;
-            // documented default until then: expired requests allowed.
-            const bool allowExpiredRequests = true;
-            if (warranty.Status == "expired" && !allowExpiredRequests)
+            if (warranty.Status == "expired" && !warranty.AllowExpiredRequests)
                 return new Result { Success = false, ErrorCode = ErrorCodes.NotAllowed };
 
             // File writes are not transactional; a rollback below can orphan
@@ -155,7 +152,7 @@ public class SubmitServiceRequest
             using var tx = db.BeginTransaction();
             try
             {
-                requestNumber = await InsertWithGeneratedNumberAsync(db, tx, new
+                requestNumber = await ServiceRequestNumberHelper.InsertAsync(db, tx, new
                 {
                     Id = requestId,
                     warranty.ShopId,
@@ -167,7 +164,7 @@ public class SubmitServiceRequest
                     PreferredContact = CreateWarranty.CommandHandler.NullIfBlank(request.PreferredContact),
                     Status = ServiceRequestStatuses.New,
                     Source = ServiceRequestSources.Public
-                });
+                }, setConsentAt: true);
 
                 foreach (var (file, path) in stored)
                     await db.ExecuteAsync(
@@ -219,46 +216,6 @@ public class SubmitServiceRequest
             return new Result { Success = true, RequestNumber = requestNumber };
         }
 
-        private static async Task<string> InsertWithGeneratedNumberAsync(
-            System.Data.IDbConnection db, System.Data.IDbTransaction tx, object serviceRequest)
-        {
-            // Global SR-{yyMM}-{seq} sequence, same scheme as Warranty.Code
-            // ("SR-2607-" is 8 chars → sequence starts at position 9).
-            var monthPrefix = $"SR-{DateTime.UtcNow:yyMM}-";
-            var nextSequence = await db.ExecuteScalarAsync<int?>(
-                "SELECT MAX(CAST(SUBSTRING(RequestNumber, 9) AS UNSIGNED)) FROM ServiceRequest WHERE RequestNumber LIKE @Pattern",
-                new { Pattern = monthPrefix + "%" }, tx) ?? 0;
-
-            for (var attempt = 0; ; attempt++)
-            {
-                nextSequence++;
-                var requestNumber = FormatRequestNumber(monthPrefix, nextSequence);
-                var parameters = new DynamicParameters(serviceRequest);
-                parameters.Add("RequestNumber", requestNumber);
-                try
-                {
-                    await db.ExecuteAsync(
-                        """
-                        INSERT INTO ServiceRequest
-                            (Id, ShopId, WarrantyId, RequestNumber, CustomerName, CustomerPhone,
-                             ProblemType, Description, PreferredContact, Status, Source, ConsentAt)
-                        VALUES
-                            (@Id, @ShopId, @WarrantyId, @RequestNumber, @CustomerName, @CustomerPhone,
-                             @ProblemType, @Description, @PreferredContact, @Status, @Source, UTC_TIMESTAMP())
-                        """,
-                        parameters, tx);
-                    return requestNumber;
-                }
-                catch (MySqlException ex) when (ex.Number == 1062 && attempt < 5)
-                {
-                    // Concurrent submission took this number; retry with next.
-                }
-            }
-        }
-
-        internal static string FormatRequestNumber(string monthPrefix, int sequence)
-            => $"{monthPrefix}{sequence:0000}";
-
         internal static bool FilesAreValid(IReadOnlyList<FilePayload> files)
         {
             if (files.Count > MaxFiles)
@@ -307,6 +264,7 @@ public class SubmitServiceRequest
             public string? ShopId { get; set; }
             public string? Status { get; set; }
             public string? ShopStatus { get; set; }
+            public bool AllowExpiredRequests { get; set; } = true;
         }
     }
 }

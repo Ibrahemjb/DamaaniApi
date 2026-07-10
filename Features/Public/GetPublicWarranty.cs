@@ -73,6 +73,7 @@ public class GetPublicWarranty
                        w.TermsAr, w.TermsEn,
                        s.Name AS ShopName, s.LogoPath AS ShopLogoPath, s.City AS ShopCity,
                        s.WhatsAppNumber AS ShopWhatsAppNumber, s.Status AS ShopStatus,
+                       s.PublicLanguage, s.PublicShowAddress, s.PublicShowWhatsApp, s.AllowExpiredRequests,
                        p.ShowDamaaniBranding
                 FROM Warranty w
                 JOIN Shop s ON s.Id = w.ShopId
@@ -102,15 +103,10 @@ public class GetPublicWarranty
                     LogoUrl = row.ShopLogoPath,
                     City = row.ShopCity,
                     WhatsAppNumber = row.ShopWhatsAppNumber,
-                    // Public-page settings arrive with DMN-901; until those
-                    // columns exist the documented defaults apply: show all,
-                    // Arabic default, expired requests allowed.
-                    ShowAddress = true,
-                    ShowWhatsApp = true,
-                    PublicLanguage = Languages.Arabic,
-                    AllowExpiredRequests = true,
-                    // Missing subscription row (shouldn't happen — DMN-1001
-                    // backfills) falls back to Free-plan behavior: branded.
+                    ShowAddress = row.PublicShowAddress,
+                    ShowWhatsApp = row.PublicShowWhatsApp,
+                    PublicLanguage = row.PublicLanguage ?? Languages.Arabic,
+                    AllowExpiredRequests = row.AllowExpiredRequests,
                     DamaaniBranding = row.ShowDamaaniBranding ?? true
                 },
                 Warranty = new WarrantyInfo
@@ -144,6 +140,10 @@ public class GetPublicWarranty
             public string? ShopCity { get; set; }
             public string? ShopWhatsAppNumber { get; set; }
             public string? ShopStatus { get; set; }
+            public string? PublicLanguage { get; set; }
+            public bool PublicShowAddress { get; set; }
+            public bool PublicShowWhatsApp { get; set; }
+            public bool AllowExpiredRequests { get; set; }
             public bool? ShowDamaaniBranding { get; set; }
         }
     }

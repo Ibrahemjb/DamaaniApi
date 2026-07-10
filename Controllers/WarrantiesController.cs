@@ -78,6 +78,15 @@ public class WarrantiesController : ControllerBase
     // The one controller action that returns a file instead of Ok(result):
     // CSV download needs Content-Disposition (DMN-409 documented exception).
     [Authorize(Roles.Staff)]
+    [HttpPost("logShare")]
+    public async Task<IActionResult> LogShare([FromBody] LogShare.Command command)
+    {
+        command.ShopId = HttpContext.CurrentShopId();
+        command.ActorUserId = HttpContext.CurrentUserId();
+        return Ok(await _mediator.Send(command));
+    }
+
+    [Authorize(Roles.Staff)]
     [HttpGet("exportWarranties")]
     public async Task<IActionResult> ExportWarranties([FromQuery] ExportWarranties.Query query)
     {

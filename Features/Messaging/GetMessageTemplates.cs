@@ -17,11 +17,22 @@ public class GetMessageTemplates
         public string En { get; set; } = "";
     }
 
+    public class TemplateItem
+    {
+        public string Key { get; set; } = "";
+        public string Ar { get; set; } = "";
+        public string En { get; set; } = "";
+        public bool IsCustomized { get; set; }
+        public string DefaultAr { get; set; } = "";
+        public string DefaultEn { get; set; } = "";
+    }
+
     public class Result
     {
         public bool Success { get; set; }
         public string? ErrorCode { get; set; }
         public Dictionary<string, TemplateText> Templates { get; set; } = new();
+        public List<TemplateItem> Items { get; set; } = new();
     }
 
     public class QueryHandler : IRequestHandler<Query, Result>
@@ -36,30 +47,51 @@ public class GetMessageTemplates
                 return new Result { Success = false, ErrorCode = ErrorCodes.Unauthorized };
 
             var result = new Result { Success = true };
+            var customized = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var (key, text) in DefaultMessages.Defaults)
-                result.Templates[key] = new TemplateText { Ar = text.Ar, En = text.En };
-
-            // Per-shop overrides live in MessageTemplate, which arrives with
-            // DMN-901. Guarding on information_schema lets shops customize via
-            // rows the moment that migration lands, without redeploying this API.
-            using var db = _mdb.Open();
-            var hasTemplateTable = await db.ExecuteScalarAsync<int>(
-                """
-                SELECT COUNT(*) FROM information_schema.tables
-                WHERE table_schema = DATABASE() AND table_name = 'MessageTemplate'
-                """);
-            if (hasTemplateTable > 0)
             {
-                var rows = await db.QueryAsync<(string TemplateKey, string? TextAr, string? TextEn)>(
-                    "SELECT TemplateKey, TextAr, TextEn FROM MessageTemplate WHERE ShopId = @ShopId",
-                    new { request.ShopId });
-                foreach (var row in rows)
+                result.Templates[key] = new TemplateText { Ar = text.Ar, En = text.En };
+                result.Items.Add(new TemplateItem
                 {
-                    if (!result.Templates.TryGetValue(row.TemplateKey, out var text))
-                        continue;
-                    if (!string.IsNullOrWhiteSpace(row.TextAr)) text.Ar = row.TextAr;
-                    if (!string.IsNullOrWhiteSpace(row.TextEn)) text.En = row.TextEn;
+                    Key = key,
+                    Ar = text.Ar,
+                    En = text.En,
+                    DefaultAr = text.Ar,
+                    DefaultEn = text.En
+                });
+            }
+
+            using var db = _mdb.Open();
+            var platformRows = await db.QueryAsync<(string TemplateKey, string? TextAr, string? TextEn)>(
+                "SELECT TemplateKey, TextAr, TextEn FROM PlatformMessage");
+            foreach (var row in platformRows)
+            {
+                if (!result.Templates.TryGetValue(row.TemplateKey, out var text))
+                    continue;
+                if (!string.IsNullOrWhiteSpace(row.TextAr)) text.Ar = row.TextAr;
+                if (!string.IsNullOrWhiteSpace(row.TextEn)) text.En = row.TextEn;
+            }
+
+            var rows = await db.QueryAsync<(string TemplateKey, string? TextAr, string? TextEn)>(
+                "SELECT TemplateKey, TextAr, TextEn FROM MessageTemplate WHERE ShopId = @ShopId",
+                new { request.ShopId });
+            foreach (var row in rows)
+            {
+                if (!result.Templates.TryGetValue(row.TemplateKey, out var text))
+                    continue;
+                customized.Add(row.TemplateKey);
+                if (!string.IsNullOrWhiteSpace(row.TextAr)) text.Ar = row.TextAr;
+                if (!string.IsNullOrWhiteSpace(row.TextEn)) text.En = row.TextEn;
+            }
+
+            foreach (var item in result.Items)
+            {
+                if (result.Templates.TryGetValue(item.Key, out var effective))
+                {
+                    item.Ar = effective.Ar;
+                    item.En = effective.En;
                 }
+                item.IsCustomized = customized.Contains(item.Key);
             }
 
             return result;

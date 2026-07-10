@@ -43,6 +43,7 @@ public class GetCreateWarrantyContext
         public List<BranchOption> Branches { get; set; } = new();
         public UsageState Usage { get; set; } = new();
         public string DefaultLanguage { get; set; } = Languages.Arabic;
+        public int? DefaultWarrantyDurationMonths { get; set; }
         // For the live public-card preview header (DMN-403).
         public string? ShopName { get; set; }
     }
@@ -60,8 +61,12 @@ public class GetCreateWarrantyContext
 
             using var db = _mdb.Open();
 
-            var shopName = await db.ExecuteScalarAsync<string?>(
-                "SELECT Name FROM Shop WHERE Id = @ShopId", new { request.ShopId });
+            var shopRow = await db.QueryFirstOrDefaultAsync<(string? Name, string? PublicLanguage, int? DefaultWarrantyDurationMonths)?>(
+                """
+                SELECT Name, PublicLanguage, DefaultWarrantyDurationMonths
+                FROM Shop WHERE Id = @ShopId
+                """,
+                new { request.ShopId });
 
             var templates = (await db.QueryAsync<TemplateOption>(
                 """
@@ -72,20 +77,25 @@ public class GetCreateWarrantyContext
                 """,
                 new { request.ShopId, Active = TemplateStatuses.Active })).ToList();
 
+            var branches = (await db.QueryAsync<BranchOption>(
+                """
+                SELECT Id, Name FROM Branch
+                WHERE ShopId = @ShopId AND Status = @Active
+                ORDER BY Name
+                """,
+                new { request.ShopId, Active = BranchStatuses.Active })).ToList();
+
             var usage = await WarrantyUsage.GetForShopAsync(db, null, request.ShopId);
 
             return new Result
             {
                 Success = true,
                 Templates = templates,
-                // Branches ship with DMN-901/905; empty keeps the form's branch
-                // selector hidden until then (documented contract for DMN-403).
-                Branches = new List<BranchOption>(),
+                Branches = branches,
                 Usage = new UsageState { Used = usage.Used, Limit = usage.Limit, Blocked = usage.Blocked },
-                // Shop public default language column arrives with DMN-902;
-                // Arabic is the product default until then (BP: Palestine-first).
-                DefaultLanguage = Languages.Arabic,
-                ShopName = shopName
+                DefaultLanguage = shopRow?.PublicLanguage ?? Languages.Arabic,
+                DefaultWarrantyDurationMonths = shopRow?.DefaultWarrantyDurationMonths,
+                ShopName = shopRow?.Name
             };
         }
     }

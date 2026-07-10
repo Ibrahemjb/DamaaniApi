@@ -43,11 +43,12 @@ public class AuthorizeFilter : IAsyncActionFilter
         }
 
         var role = context.HttpContext.Items["Role"] as string;
-        var isAdmin = context.HttpContext.Items["IsPlatformAdmin"] as bool? == true;
-        var allowed = _roles.Any(required => RoleAllows(role, required)) || isAdmin;
+        // DMN-1101: platform admins use /admin/* only; no implicit shop access without ShopUser role.
+        var allowed = _roles.Any(required => RoleAllows(role, required));
         if (!allowed)
         {
-            context.Result = new ForbidResult();
+            // ponytail: StatusCodeResult — ForbidResult needs AddAuthentication schemes we don't use
+            context.Result = AuthResults.Forbidden();
             return;
         }
 
@@ -73,10 +74,23 @@ public class AuthorizeAdminFilter : IAsyncActionFilter
         {
             context.Result = string.IsNullOrWhiteSpace(context.HttpContext.Items["UserId"] as string)
                 ? new UnauthorizedResult()
-                : new ForbidResult();
+                : AuthResults.Forbidden();
             return;
         }
 
         await next();
     }
+}
+
+// Shared 403 without ASP.NET Identity schemes (custom JWT middleware only).
+public static class AuthResults
+{
+    public static IActionResult Forbidden() => new ObjectResult(new
+    {
+        success = false,
+        errorCode = ErrorCodes.Forbidden
+    })
+    {
+        StatusCode = StatusCodes.Status403Forbidden
+    };
 }

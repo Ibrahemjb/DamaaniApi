@@ -63,7 +63,9 @@ public class AuthenticationMiddleware
         var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? principal.FindFirstValue("sub");
         var shopId = principal.FindFirstValue("shopId");
-        var role = principal.FindFirstValue("role");
+        // MapInboundClaims=false keeps "role"; fall back to ClaimTypes.Role if a handler remaps.
+        var role = principal.FindFirstValue("role")
+            ?? principal.FindFirstValue(ClaimTypes.Role);
         var isAdmin = string.Equals(principal.FindFirstValue("admin"), "true", StringComparison.OrdinalIgnoreCase);
 
         if (string.IsNullOrWhiteSpace(userId) || !await IsActiveAsync(userId, shopId, isAdmin))

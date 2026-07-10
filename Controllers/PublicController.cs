@@ -1,4 +1,5 @@
 using DammaniAPI.Features.Public;
+using DammaniAPI.Features.Staff;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -42,6 +43,26 @@ public class PublicController : ControllerBase
                 Content = buffer.ToArray()
             });
         }
+        return Ok(await _mediator.Send(command));
+    }
+
+    [HttpGet("content")]
+    public async Task<IActionResult> GetContent([FromQuery] string[] keys)
+        => Ok(await _mediator.Send(new GetContent.Query { Keys = keys }));
+
+    [HttpGet("invite/{token}")]
+    public async Task<IActionResult> GetInvite(string token)
+        => Ok(await _mediator.Send(new GetInvite.Query { Token = token }));
+
+    [HttpPost("invite/accept")]
+    public async Task<IActionResult> AcceptInvite([FromBody] AcceptInvite.Command command)
+        => Ok(await _mediator.Send(command));
+
+    [HttpPost("contact/submit")]
+    public async Task<IActionResult> SubmitContact([FromBody] SubmitContact.Command command)
+    {
+        command.ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        command.ShopId = HttpContext.Items["ShopId"] as string;
         return Ok(await _mediator.Send(command));
     }
 }

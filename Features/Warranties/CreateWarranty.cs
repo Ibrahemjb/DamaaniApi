@@ -130,6 +130,19 @@ public class CreateWarranty
                 if (shopStatus == ShopStatuses.Suspended)
                     return new Result { Success = false, ErrorCode = ErrorCodes.ShopSuspended };
 
+                var branchId = NullIfBlank(request.BranchId);
+                if (branchId != null)
+                {
+                    var branchOk = await db.ExecuteScalarAsync<int>(
+                        """
+                        SELECT COUNT(*) FROM Branch
+                        WHERE Id = @BranchId AND ShopId = @ShopId AND Status = @Active
+                        """,
+                        new { BranchId = branchId, request.ShopId, Active = BranchStatuses.Active }, tx);
+                    if (branchOk == 0)
+                        return new Result { Success = false, ErrorCode = ErrorCodes.NotFound };
+                }
+
                 // 1. Monthly plan limit — new non-draft cards only (BP §13).
                 if (!request.IsDraft)
                 {
@@ -188,7 +201,7 @@ public class CreateWarranty
                     Id = warrantyId,
                     request.ShopId,
                     CustomerId = customerId,
-                    request.BranchId,
+                    BranchId = branchId,
                     TemplateId = NullIfBlank(request.TemplateId),
                     ProductName = request.ProductName.Trim(),
                     Category = NullIfBlank(request.Category),

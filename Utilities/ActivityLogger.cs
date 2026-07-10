@@ -6,6 +6,8 @@ namespace DammaniAPI.Utilities;
 public static class ActivityLogger
 {
     // Action convention: entity.verb_past, e.g. shop.created, user.password_reset, user.password_changed.
+    // Admin mutations (DMN-1101+): always pass target ShopId when the action concerns a shop;
+    // platform-only edits (content.*) may use ShopId=null; ActorUserId must be the admin user.
     public static async Task LogAsync(
         IDbConnection db,
         IDbTransaction? tx,

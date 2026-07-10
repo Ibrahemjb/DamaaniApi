@@ -138,7 +138,8 @@ public class Signup
                 Language = request.Language,
                 Role = Roles.Owner,
                 ShopId = shopId,
-                IsPlatformAdmin = false
+                IsPlatformAdmin = false,
+                OnboardingCompleted = false
             };
 
             var token = _tokenService.Issue(new AuthUser(user.Id, user.FullName, user.Email, user.Language, user.ShopId, user.Role, user.IsPlatformAdmin));

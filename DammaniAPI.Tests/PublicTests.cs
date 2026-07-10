@@ -1,5 +1,6 @@
 using System.Reflection;
 using DammaniAPI.Features.Public;
+using DammaniAPI.Features.ServiceRequests;
 using Xunit;
 
 namespace DammaniAPI.Tests;
@@ -221,13 +222,48 @@ public class ServiceRequestFileTests
     }
 }
 
+public class SubmitContactValidatorTests
+{
+    private static SubmitContact.Command ValidCommand() => new()
+    {
+        Email = "shop@example.com",
+        Message = "I need help setting up my shop account please.",
+        Topic = "general"
+    };
+
+    [Fact]
+    public void AcceptsValidCommand()
+    {
+        var result = new SubmitContact.CommandValidator().Validate(ValidCommand());
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void RejectsShortMessage()
+    {
+        var cmd = ValidCommand();
+        cmd.Message = "short";
+        var result = new SubmitContact.CommandValidator().Validate(cmd);
+        Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public void RejectsInvalidEmail()
+    {
+        var cmd = ValidCommand();
+        cmd.Email = "not-an-email";
+        var result = new SubmitContact.CommandValidator().Validate(cmd);
+        Assert.False(result.IsValid);
+    }
+}
+
 public class RequestNumberTests
 {
     [Fact]
     public void FormatsGlobalMonthlySequence()
     {
-        Assert.Equal("SR-2607-0001", SubmitServiceRequest.CommandHandler.FormatRequestNumber("SR-2607-", 1));
-        Assert.Equal("SR-2607-0042", SubmitServiceRequest.CommandHandler.FormatRequestNumber("SR-2607-", 42));
-        Assert.Equal("SR-2607-12345", SubmitServiceRequest.CommandHandler.FormatRequestNumber("SR-2607-", 12345));
+        Assert.Equal("SR-2607-0001", ServiceRequestNumberHelper.FormatRequestNumber("SR-2607-", 1));
+        Assert.Equal("SR-2607-0042", ServiceRequestNumberHelper.FormatRequestNumber("SR-2607-", 42));
+        Assert.Equal("SR-2607-12345", ServiceRequestNumberHelper.FormatRequestNumber("SR-2607-", 12345));
     }
 }

@@ -16,12 +16,17 @@ public static class ErrorCodes
     public const string ShopSuspended = "shop_suspended";
     public const string WarrantyCancelled = "warranty_cancelled";
     public const string FeatureNotInPlan = "feature_not_in_plan";
+    public const string UserLimitReached = "user_limit_reached";
+    public const string UnknownVariable = "unknown_variable";
+    public const string DuplicateMember = "duplicate_member";
     // Public surface codes (DMN-501/504): deliberately vague — "unavailable"
     // covers suspended shops without revealing that a shop exists or why.
     public const string Unavailable = "unavailable";
     public const string NotAllowed = "not_allowed";
     public const string TooManyRequests = "too_many_requests";
     public const string InvalidFiles = "invalid_files";
+    public const string RequestClosed = "request_closed";
+    public const string InvalidRange = "invalid_range";
 }
 
 public static class Roles
@@ -177,4 +182,10 @@ public static class BusinessCategories
         FurnitureTools,
         Other
     };
+}
+
+public static class BranchStatuses
+{
+    public const string Active = "active";
+    public const string Inactive = "inactive";
 }

@@ -10,6 +10,7 @@ using DotNetEnv;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders;
 using Serilog;
 
 var envFile = FindEnvFile();
@@ -62,13 +63,23 @@ app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod())
 app.UseResponseCompression();
 app.UseMiddleware<LoggingMiddleware>();
 app.UseMiddleware<AuthenticationMiddleware>();
+
+// ponytail: serve logos (and attachments) from uploads root; attachments lack auth for MVP.
+var uploadsRoot = app.Configuration["UPLOADS_ROOT"] ?? Path.Combine(AppContext.BaseDirectory, "uploads");
+Directory.CreateDirectory(Path.Combine(uploadsRoot, "logos"));
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsRoot),
+    RequestPath = "/uploads"
+});
+
 app.MapControllers();
 
 try
 {
-    new DatabaseMigrator(
-        app.Services.GetRequiredService<IManagementDatabase>(),
-        app.Configuration).Migrate();
+    var mdb = app.Services.GetRequiredService<IManagementDatabase>();
+    new DatabaseMigrator(mdb, app.Configuration).Migrate();
+    await PlatformAdminProvisioner.RunAsync(mdb, Environment.GetEnvironmentVariable("PLATFORM_ADMIN_EMAIL"));
 }
 catch (Exception ex)
 {

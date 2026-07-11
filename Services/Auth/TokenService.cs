@@ -18,7 +18,8 @@ public record AuthUser(
     string Language,
     string? ShopId,
     string? Role,
-    bool IsPlatformAdmin);
+    bool IsPlatformAdmin,
+    string? AdminRole = null);
 
 public class TokenService : ITokenService
 {
@@ -51,6 +52,8 @@ public class TokenService : ITokenService
             claims.Add(new Claim("shopId", user.ShopId));
         if (!string.IsNullOrWhiteSpace(user.Role))
             claims.Add(new Claim("role", user.Role));
+        if (user.IsPlatformAdmin)
+            claims.Add(new Claim("adminRole", string.IsNullOrWhiteSpace(user.AdminRole) ? "super" : user.AdminRole));
 
         var token = new JwtSecurityToken(
             issuer: _configuration["JWT_ISSUER"] ?? "damaani-api",

@@ -80,6 +80,8 @@ try
     var mdb = app.Services.GetRequiredService<IManagementDatabase>();
     new DatabaseMigrator(mdb, app.Configuration).Migrate();
     await PlatformAdminProvisioner.RunAsync(mdb, Environment.GetEnvironmentVariable("PLATFORM_ADMIN_EMAIL"));
+    var seedDemo = string.Equals(Environment.GetEnvironmentVariable("SEED_DEMO_DATA"), "true", StringComparison.OrdinalIgnoreCase);
+    await AdminDemoSeedProvisioner.RunAsync(mdb, app.Services.GetRequiredService<IPasswordHasher>(), seedDemo);
 }
 catch (Exception ex)
 {

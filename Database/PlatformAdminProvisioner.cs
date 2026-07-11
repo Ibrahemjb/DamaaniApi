@@ -33,7 +33,7 @@ public static class PlatformAdminProvisioner
         }
 
         await db.ExecuteAsync(
-            "UPDATE User SET IsPlatformAdmin = 1, UpdatedAt = UTC_TIMESTAMP() WHERE Id = @Id",
+            "UPDATE User SET IsPlatformAdmin = 1, AdminRole = COALESCE(AdminRole, 'super'), UpdatedAt = UTC_TIMESTAMP() WHERE Id = @Id",
             new { user.Id });
         Log.Information("PLATFORM_ADMIN_EMAIL={Email} — promoted user {UserId} to platform admin.", email, user.Id);
     }

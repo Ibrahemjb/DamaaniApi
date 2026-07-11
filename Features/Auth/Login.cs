@@ -71,6 +71,7 @@ public class Login
                     u.Language,
                     u.Status AS UserStatus,
                     u.IsPlatformAdmin,
+                    u.AdminRole,
                     su.ShopId,
                     su.Role,
                     su.Status AS ShopUserStatus,
@@ -107,9 +108,14 @@ public class Login
                 Role = user.Role,
                 ShopId = user.ShopId,
                 IsPlatformAdmin = user.IsPlatformAdmin,
+                AdminRole = user.IsPlatformAdmin
+                    ? (string.IsNullOrWhiteSpace(user.AdminRole) ? "super" : user.AdminRole)
+                    : null,
                 OnboardingCompleted = user.OnboardingCompleted
             };
-            var token = _tokenService.Issue(new AuthUser(resultUser.Id, resultUser.FullName, resultUser.Email, resultUser.Language, resultUser.ShopId, resultUser.Role, resultUser.IsPlatformAdmin));
+            var token = _tokenService.Issue(new AuthUser(
+                resultUser.Id, resultUser.FullName, resultUser.Email, resultUser.Language,
+                resultUser.ShopId, resultUser.Role, resultUser.IsPlatformAdmin, resultUser.AdminRole));
             return new Result { Success = true, Token = token, User = resultUser };
         }
 
@@ -133,6 +139,7 @@ public class Login
             public string Language { get; set; } = "ar";
             public string UserStatus { get; set; } = "";
             public bool IsPlatformAdmin { get; set; }
+            public string? AdminRole { get; set; }
             public string? ShopId { get; set; }
             public string? Role { get; set; }
             public string? ShopUserStatus { get; set; }

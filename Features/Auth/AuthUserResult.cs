@@ -10,5 +10,6 @@ public class AuthUserResult
     public string? Role { get; set; }
     public string? ShopId { get; set; }
     public bool IsPlatformAdmin { get; set; }
+    public string? AdminRole { get; set; }
     public bool OnboardingCompleted { get; set; }
 }

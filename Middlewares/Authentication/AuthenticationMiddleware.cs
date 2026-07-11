@@ -67,6 +67,7 @@ public class AuthenticationMiddleware
         var role = principal.FindFirstValue("role")
             ?? principal.FindFirstValue(ClaimTypes.Role);
         var isAdmin = string.Equals(principal.FindFirstValue("admin"), "true", StringComparison.OrdinalIgnoreCase);
+        var adminRole = principal.FindFirstValue("adminRole") ?? (isAdmin ? "super" : null);
 
         if (string.IsNullOrWhiteSpace(userId) || !await IsActiveAsync(userId, shopId, isAdmin))
         {
@@ -78,6 +79,7 @@ public class AuthenticationMiddleware
         context.Items["ShopId"] = shopId;
         context.Items["Role"] = role;
         context.Items["IsPlatformAdmin"] = isAdmin;
+        context.Items["AdminRole"] = adminRole;
         await _next(context);
     }
 

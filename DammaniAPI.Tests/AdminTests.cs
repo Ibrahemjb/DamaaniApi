@@ -89,11 +89,47 @@ public class AuthorizeAdminFilterTests
             })
             .Build();
         var service = new TokenService(configuration, NullLogger<TokenService>.Instance);
-        var token = service.Issue(new AuthUser("admin-1", "Admin", "admin@example.com", "en", null, null, true));
+        var token = service.Issue(new AuthUser("admin-1", "Admin", "admin@example.com", "en", null, null, true, AdminRoles.Super));
         var principal = service.Validate(token);
 
         Assert.Equal("true", principal!.FindFirst("admin")?.Value);
+        Assert.Equal("super", principal.FindFirst("adminRole")?.Value);
         Assert.Null(principal.FindFirst("shopId")?.Value);
+    }
+
+    [Fact]
+    public async Task AdminEndpoint_RoleGate_BlocksBillingOnlyOnSuspend()
+    {
+        var filter = new AuthorizeAdminFilter(new[] { AdminRoles.Super, AdminRoles.Support });
+        var context = CreateContext(true, "billing-1", adminRole: AdminRoles.Billing);
+        var executed = false;
+
+        await filter.OnActionExecutionAsync(context, () =>
+        {
+            executed = true;
+            return Task.FromResult(new ActionExecutedContext(context, new List<IFilterMetadata>(), null!));
+        });
+
+        var result = Assert.IsType<ObjectResult>(context.Result);
+        Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
+        Assert.False(executed);
+    }
+
+    [Fact]
+    public async Task AdminEndpoint_RoleGate_AllowsSupportOnSuspend()
+    {
+        var filter = new AuthorizeAdminFilter(new[] { AdminRoles.Super, AdminRoles.Support });
+        var context = CreateContext(true, "support-1", adminRole: AdminRoles.Support);
+        var executed = false;
+
+        await filter.OnActionExecutionAsync(context, () =>
+        {
+            executed = true;
+            return Task.FromResult(new ActionExecutedContext(context, new List<IFilterMetadata>(), null!));
+        });
+
+        Assert.Null(context.Result);
+        Assert.True(executed);
     }
 
     [Fact]
@@ -135,13 +171,15 @@ public class AuthorizeAdminFilterTests
         bool isAdmin,
         string userId,
         string? role = null,
-        string? shopId = null)
+        string? shopId = null,
+        string? adminRole = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         httpContext.Items["IsPlatformAdmin"] = isAdmin;
         if (role is not null) httpContext.Items["Role"] = role;
         if (shopId is not null) httpContext.Items["ShopId"] = shopId;
+        if (isAdmin) httpContext.Items["AdminRole"] = adminRole ?? AdminRoles.Super;
 
         return new ActionExecutingContext(
             new ActionContext(httpContext, new RouteData(), new ActionDescriptor()),

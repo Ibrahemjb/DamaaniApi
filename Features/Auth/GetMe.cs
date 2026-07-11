@@ -42,6 +42,7 @@ public class GetMe
                     su.Role,
                     su.ShopId,
                     u.IsPlatformAdmin,
+                    u.AdminRole,
                     (s.OnboardingCompletedAt IS NOT NULL) AS OnboardingCompleted
                 FROM User u
                 LEFT JOIN ShopUser su ON su.UserId = u.Id AND su.Status = 'active'
@@ -52,9 +53,13 @@ public class GetMe
                 """,
                 new { request.UserId });
 
-            return user == null
-                ? new Result { Success = false, ErrorCode = ErrorCodes.Unauthorized }
-                : new Result { Success = true, User = user };
+            if (user == null)
+                return new Result { Success = false, ErrorCode = ErrorCodes.Unauthorized };
+
+            if (user.IsPlatformAdmin && string.IsNullOrWhiteSpace(user.AdminRole))
+                user.AdminRole = "super";
+
+            return new Result { Success = true, User = user };
         }
     }
 }

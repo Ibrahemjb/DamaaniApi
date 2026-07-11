@@ -50,12 +50,14 @@ public class GetShop
         public string? Country { get; set; }
         public string? City { get; set; }
         public string? Status { get; set; }
+        public string? SuspensionNote { get; set; }
         public string PlanCode { get; set; } = "";
         public string PlanNameEn { get; set; } = "";
         public string PlanNameAr { get; set; } = "";
         public int Used { get; set; }
         public int Limit { get; set; }
         public DateTime? CurrentPeriodEnd { get; set; }
+        public DateTime? CreatedAt { get; set; }
         public Counts Counts { get; set; } = new();
         public List<PaymentRow> Payments { get; set; } = new();
         public List<ActivityRow> Activity { get; set; } = new();
@@ -82,10 +84,12 @@ public class GetShop
                     s.Country,
                     s.City,
                     s.Status,
+                    s.SuspensionNote,
                     COALESCE(p.Code, 'free') AS PlanCode,
                     COALESCE(p.NameEn, 'Free') AS PlanNameEn,
                     COALESCE(p.NameAr, 'المجانية') AS PlanNameAr,
-                    sub.CurrentPeriodEnd
+                    sub.CurrentPeriodEnd,
+                    s.CreatedAt
                 FROM Shop s
                 LEFT JOIN Subscription sub ON sub.ShopId = s.Id
                 LEFT JOIN Plan p ON p.Id = sub.PlanId

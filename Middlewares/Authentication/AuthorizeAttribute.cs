@@ -13,11 +13,12 @@ public class AuthorizeAttribute : TypeFilterAttribute
     }
 }
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
 public class AuthorizeAdminAttribute : TypeFilterAttribute
 {
-    public AuthorizeAdminAttribute() : base(typeof(AuthorizeAdminFilter))
+    public AuthorizeAdminAttribute(params string[] adminRoles) : base(typeof(AuthorizeAdminFilter))
     {
+        Arguments = new object[] { adminRoles };
     }
 }
 
@@ -67,6 +68,14 @@ public class AuthorizeFilter : IAsyncActionFilter
 
 public class AuthorizeAdminFilter : IAsyncActionFilter
 {
+    private readonly string[] _adminRoles;
+
+    public AuthorizeAdminFilter() : this(Array.Empty<string>())
+    {
+    }
+
+    public AuthorizeAdminFilter(string[] adminRoles) => _adminRoles = adminRoles ?? Array.Empty<string>();
+
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var isAdmin = context.HttpContext.Items["IsPlatformAdmin"] as bool? == true;
@@ -76,6 +85,16 @@ public class AuthorizeAdminFilter : IAsyncActionFilter
                 ? new UnauthorizedResult()
                 : AuthResults.Forbidden();
             return;
+        }
+
+        if (_adminRoles.Length > 0)
+        {
+            var role = context.HttpContext.Items["AdminRole"] as string;
+            if (!DammaniAPI.Features.Admin.AdminRoles.Allows(role, _adminRoles))
+            {
+                context.Result = AuthResults.Forbidden();
+                return;
+            }
         }
 
         await next();

@@ -292,6 +292,8 @@ Local dev: copy `.env.example` → `.env`.
 
 ## What NOT to Add
 
+- Test projects, test files, test directories, test packages, or test-project references unless the user explicitly reverses this rule.
+- xUnit, NUnit, MSTest, `Microsoft.NET.Test.Sdk`, or any `*.Tests.csproj` project.
 - Entity/model files with static Dapper helpers (SQL belongs in handlers).
 - EF Core or generic repositories.
 - Minimal APIs for business endpoints.

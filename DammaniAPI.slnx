@@ -1,4 +1,3 @@
 <Solution>
   <Project Path="DammaniAPI.csproj" />
-  <Project Path="DammaniAPI.Tests/DammaniAPI.Tests.csproj" />
 </Solution>

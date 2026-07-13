@@ -7,6 +7,9 @@ public static class ErrorCodes
     public const string Locked = "temporarily_locked";
     public const string EmailTaken = "email_taken";
     public const string InvalidOrExpiredToken = "invalid_or_expired_token";
+    public const string EmailNotVerified = "email_not_verified";
+    public const string InvalidCode = "invalid_code";
+    public const string AlreadyVerified = "already_verified";
     public const string WrongPassword = "wrong_password";
     public const string Unauthorized = "unauthorized";
     public const string Forbidden = "forbidden";

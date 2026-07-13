@@ -17,6 +17,17 @@ public class MockEmailSender : IEmailSender
         return Task.CompletedTask;
     }
 
+    public Task SendEmailVerificationAsync(string email, string language, string code, CancellationToken ct)
+    {
+        var subject = language == "ar" ? "رمز تأكيد البريد الإلكتروني — ضماني" : "Your Damaani email verification code";
+        _logger.LogInformation(
+            "Mock email send: To={Email}; Subject={Subject}; Code={Code}",
+            email,
+            subject,
+            code);
+        return Task.CompletedTask;
+    }
+
     public Task SendStaffInviteAsync(string email, string language, string shopName, string inviteUrl, CancellationToken ct)
     {
         var subject = language == "ar" ? $"دعوة للانضمام إلى {shopName} على ضماني" : $"Join {shopName} on Damaani";

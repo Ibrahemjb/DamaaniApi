@@ -22,6 +22,17 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] Login.Command command)
         => Ok(await _mediator.Send(command));
 
+    [HttpPost("verifyEmail")]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmail.Command command)
+        => Ok(await _mediator.Send(command));
+
+    [HttpPost("resendVerification")]
+    public async Task<IActionResult> ResendVerification([FromBody] ResendVerification.Command command)
+    {
+        command.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        return Ok(await _mediator.Send(command));
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> Me()

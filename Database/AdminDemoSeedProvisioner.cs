@@ -38,9 +38,9 @@ public static class AdminDemoSeedProvisioner
             await db.ExecuteAsync(
                 """
                 INSERT INTO User
-                    (Id, Email, FullName, Phone, PasswordHash, Language, Status, IsPlatformAdmin, AdminRole, CreatedAt, UpdatedAt)
+                    (Id, Email, FullName, Phone, PasswordHash, Language, Status, IsPlatformAdmin, AdminRole, EmailVerifiedAt, CreatedAt, UpdatedAt)
                 VALUES
-                    (@Id, @Email, 'Platform Admin', '+970500000001', @Hash, 'en', 'active', 1, @Role, UTC_TIMESTAMP(), UTC_TIMESTAMP())
+                    (@Id, @Email, 'Platform Admin', '+970500000001', @Hash, 'en', 'active', 1, @Role, UTC_TIMESTAMP(), UTC_TIMESTAMP(), UTC_TIMESTAMP())
                 """,
                 new
                 {
@@ -82,9 +82,9 @@ public static class AdminDemoSeedProvisioner
                 await db.ExecuteAsync(
                     """
                     INSERT INTO User
-                        (Id, Email, FullName, Phone, PasswordHash, Language, Status, IsPlatformAdmin, AdminRole, CreatedAt, UpdatedAt)
+                        (Id, Email, FullName, Phone, PasswordHash, Language, Status, IsPlatformAdmin, AdminRole, EmailVerifiedAt, CreatedAt, UpdatedAt)
                     VALUES
-                        (@Id, @Email, @Name, @Phone, @Hash, 'ar', 'active', 0, NULL, UTC_TIMESTAMP(), UTC_TIMESTAMP())
+                        (@Id, @Email, @Name, @Phone, @Hash, 'ar', 'active', 0, NULL, UTC_TIMESTAMP(), UTC_TIMESTAMP(), UTC_TIMESTAMP())
                     """,
                     new
                     {

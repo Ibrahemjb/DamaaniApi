@@ -12,7 +12,7 @@ public class Login
 {
     public class Command : IRequest<Result>
     {
-        public string Identifier { get; set; } = "";
+        public string Email { get; set; } = "";
         public string Password { get; set; } = "";
     }
 
@@ -28,7 +28,7 @@ public class Login
     {
         public CommandValidator()
         {
-            RuleFor(x => x.Identifier).NotEmpty().MaximumLength(255);
+            RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(255);
             RuleFor(x => x.Password).NotEmpty();
         }
     }
@@ -54,8 +54,8 @@ public class Login
 
         public async Task<Result> Handle(Command request, CancellationToken ct)
         {
-            var identifier = request.Identifier.Trim();
-            var lockKey = $"login-lock:{identifier.ToLowerInvariant()}";
+            var email = request.Email.Trim().ToLowerInvariant();
+            var lockKey = $"login-lock:{email}";
             if (_cache.TryGetValue(lockKey, out int failures) && failures >= 5)
                 return new Result { Success = false, ErrorCode = ErrorCodes.Locked };
 
@@ -72,6 +72,7 @@ public class Login
                     u.Status AS UserStatus,
                     u.IsPlatformAdmin,
                     u.AdminRole,
+                    (u.EmailVerifiedAt IS NOT NULL) AS EmailVerified,
                     su.ShopId,
                     su.Role,
                     su.Status AS ShopUserStatus,
@@ -80,21 +81,24 @@ public class Login
                 FROM User u
                 LEFT JOIN ShopUser su ON su.UserId = u.Id
                 LEFT JOIN Shop s ON s.Id = su.ShopId
-                WHERE (@IsEmail = 1 AND LOWER(u.Email) = @Identifier)
-                   OR (@IsEmail = 0 AND u.Phone = @Identifier)
+                WHERE LOWER(u.Email) = @Email
                 ORDER BY su.Role = 'owner' DESC
                 LIMIT 1
                 """,
-                new
-                {
-                    IsEmail = identifier.Contains('@') ? 1 : 0,
-                    Identifier = identifier.Contains('@') ? identifier.ToLowerInvariant() : identifier
-                });
+                new { Email = email });
 
             if (user == null || !_passwordHasher.Verify(request.Password, user.PasswordHash ?? "") || !IsLoginActive(user))
             {
                 RegisterFailure(lockKey, failures);
                 return new Result { Success = false, ErrorCode = ErrorCodes.InvalidCredentials };
+            }
+
+            // Correct password but unverified email: send the caller to the
+            // verification step instead of issuing a token.
+            if (!user.EmailVerified)
+            {
+                _cache.Remove(lockKey);
+                return new Result { Success = false, ErrorCode = ErrorCodes.EmailNotVerified };
             }
 
             _cache.Remove(lockKey);
@@ -139,6 +143,7 @@ public class Login
             public string Language { get; set; } = "ar";
             public string UserStatus { get; set; } = "";
             public bool IsPlatformAdmin { get; set; }
+            public bool EmailVerified { get; set; }
             public string? AdminRole { get; set; }
             public string? ShopId { get; set; }
             public string? Role { get; set; }

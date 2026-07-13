@@ -13,6 +13,8 @@ public class AuthenticationMiddleware
     {
         "/auth/signup",
         "/auth/login",
+        "/auth/verifyEmail",
+        "/auth/resendVerification",
         "/auth/requestPasswordReset",
         "/auth/resetPassword"
     };

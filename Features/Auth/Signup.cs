@@ -2,6 +2,7 @@ using Dapper;
 using DammaniAPI.Database;
 using DammaniAPI.Features;
 using DammaniAPI.Services.Auth;
+using DammaniAPI.Services.Email;
 using DammaniAPI.Utilities;
 using FluentValidation;
 using MediatR;
@@ -25,8 +26,10 @@ public class Signup
     {
         public bool Success { get; set; }
         public string? ErrorCode { get; set; }
-        public string? Token { get; set; }
-        public AuthUserResult? User { get; set; }
+        // Signup never logs the user in: they must verify their email first
+        // (POST /auth/verifyEmail), which is what returns the token.
+        public bool RequiresVerification { get; set; }
+        public string? Email { get; set; }
     }
 
     public class CommandValidator : AbstractValidator<Command>
@@ -47,13 +50,13 @@ public class Signup
     {
         private readonly IManagementDatabase _mdb;
         private readonly IPasswordHasher _passwordHasher;
-        private readonly ITokenService _tokenService;
+        private readonly IEmailSender _emailSender;
 
-        public CommandHandler(IManagementDatabase mdb, IPasswordHasher passwordHasher, ITokenService tokenService)
+        public CommandHandler(IManagementDatabase mdb, IPasswordHasher passwordHasher, IEmailSender emailSender)
         {
             _mdb = mdb;
             _passwordHasher = passwordHasher;
-            _tokenService = tokenService;
+            _emailSender = emailSender;
         }
 
         public async Task<Result> Handle(Command request, CancellationToken ct)
@@ -71,6 +74,7 @@ public class Signup
             var shopId = Guid.NewGuid().ToString();
             var shopUserId = Guid.NewGuid().ToString();
             var subscriptionId = Guid.NewGuid().ToString();
+            string code;
             using var tx = db.BeginTransaction();
             try
             {
@@ -121,6 +125,7 @@ public class Signup
                     tx);
 
                 await ActivityLogger.LogAsync(db, tx, shopId, "shop", shopId, "shop.created", userId);
+                code = await EmailVerificationCodes.IssueAsync(db, tx, userId);
                 tx.Commit();
             }
             catch
@@ -129,21 +134,8 @@ public class Signup
                 throw;
             }
 
-            var user = new AuthUserResult
-            {
-                Id = userId,
-                FullName = request.FullName.Trim(),
-                Email = email,
-                Phone = request.Phone.Trim(),
-                Language = request.Language,
-                Role = Roles.Owner,
-                ShopId = shopId,
-                IsPlatformAdmin = false,
-                OnboardingCompleted = false
-            };
-
-            var token = _tokenService.Issue(new AuthUser(user.Id, user.FullName, user.Email, user.Language, user.ShopId, user.Role, user.IsPlatformAdmin));
-            return new Result { Success = true, Token = token, User = user };
+            await _emailSender.SendEmailVerificationAsync(email, request.Language, code, ct);
+            return new Result { Success = true, RequiresVerification = true, Email = email };
         }
     }
 }

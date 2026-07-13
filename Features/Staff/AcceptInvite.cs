@@ -97,8 +97,8 @@ public class AcceptInvite
                     userId = Guid.NewGuid().ToString();
                     await db.ExecuteAsync(
                         """
-                        INSERT INTO User (Id, Email, FullName, Phone, PasswordHash, Language, Status, IsPlatformAdmin, CreatedAt)
-                        VALUES (@Id, @Email, @FullName, @Phone, @PasswordHash, @Language, 'active', 0, UTC_TIMESTAMP())
+                        INSERT INTO User (Id, Email, FullName, Phone, PasswordHash, Language, Status, IsPlatformAdmin, EmailVerifiedAt, CreatedAt)
+                        VALUES (@Id, @Email, @FullName, @Phone, @PasswordHash, @Language, 'active', 0, UTC_TIMESTAMP(), UTC_TIMESTAMP())
                         """,
                         new
                         {
